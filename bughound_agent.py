@@ -185,16 +185,31 @@ class BugHoundAgent:
 
         return None
 
+    _VALID_SEVERITIES = {"low", "medium", "high"}
+
     def _normalize_issues(self, arr: List[Any]) -> List[Dict[str, str]]:
         issues: List[Dict[str, str]] = []
         for item in arr:
             if not isinstance(item, dict):
                 continue
+            msg = str(item.get("msg", "")).strip()
+            if not msg:
+                # Skip issues the model returned without an explanation.
+                continue
+            severity_raw = str(item.get("severity", "")).strip()
+            if severity_raw.lower() not in self._VALID_SEVERITIES:
+                # Unrecognized severity (e.g. "Critical", "Unknown") defaults to
+                # Low so the risk assessor always applies a penalty rather than
+                # silently skipping the issue.
+                severity = "Low"
+                self._log("ANALYZE", f"Unrecognized severity '{severity_raw}' normalized to 'Low'.")
+            else:
+                severity = severity_raw.capitalize()
             issues.append(
                 {
-                    "type": str(item.get("type", "Issue")),
-                    "severity": str(item.get("severity", "Unknown")),
-                    "msg": str(item.get("msg", "")).strip(),
+                    "type": str(item.get("type", "Issue")).strip() or "Issue",
+                    "severity": severity,
+                    "msg": msg,
                 }
             )
         return issues
