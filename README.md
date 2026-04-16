@@ -99,11 +99,52 @@ BugHound will now use Gemini for analysis and fix generation, while still applyi
 Tests focus on **reliability logic** and **agent behavior**, not the UI.
 
 ```bash
-pytest
+PYTHONPATH=. pytest tests/ -v
 ```
 
-You should see tests covering:
+> Note: `PYTHONPATH=.` is required so pytest can resolve `bughound_agent` and `reliability` as top-level modules.
 
-* Risk scoring and guardrails
-* Heuristic fallbacks when LLM output is invalid
-* End-to-end agent workflow shape
+The 9 tests cover:
+
+* Risk scoring and guardrails (`test_risk_assessor.py`)
+* Heuristic fallbacks when LLM output is invalid (`test_agent_workflow.py`)
+* End-to-end agent workflow shape and output types
+* String literal mutation detection — prevents false-positive heuristics from auto-applying over-edits
+* Medium/High severity issue gate — blocks auto-fix even when the risk score is technically low
+
+---
+
+## Reliability Guardrails
+
+Three guardrails were added beyond the starter implementation:
+
+| Guardrail | Location | What it prevents |
+|-----------|----------|-----------------|
+| Severity normalization | `bughound_agent._normalize_issues` | Non-standard severity values (e.g. `"Critical"`, `"MEDIUM"`) silently bypassing risk scoring |
+| Medium/High severity gate | `risk_assessor.assess_risk` | Auto-fix triggering on notable issues even when the score is ≥ 75 |
+| String literal mutation | `risk_assessor.assess_risk` | Heuristic false positives rewriting text inside string literals and auto-applying the change |
+
+---
+
+## Demo
+
+### Test 1 — Clean Code (No Issues)
+![Clean code](demo/01_clean_code.png)
+
+### Test 2 — Bare Except (High Severity)
+![Bare except](demo/02_bare_except.png)
+
+### Test 3 — All Three Heuristic Patterns
+![Mixed issues](demo/03_mixed_issues.png)
+
+### Test 4 — Medium Severity Blocks Auto-Fix (Part 3 Guardrail)
+![Medium severity guardrail](demo/04_medium_severity_guardrail.png)
+
+### Test 5 — String Literal Mutation Blocked (Part 4 Guardrail)
+![String literal guardrail](demo/05_string_literal_guardrail.png)
+
+### Test 6 — Edge Case: Comments Only
+![Comments only](demo/06_edge_case_comments_only.png)
+
+### Test 7 — Gemini Mode Sidebar Warning
+![Gemini mode warning](demo/07_gemini_mode_warning.png)
