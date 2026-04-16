@@ -1,3 +1,4 @@
+import re
 from typing import Dict, List
 
 
@@ -63,6 +64,19 @@ def assess_risk(
         reasons.append("Bare except was modified, verify correctness.")
 
     # ----------------------------
+    # String literal mutation check
+    # ----------------------------
+    # If the fix changed the contents of string literals, the agent may have
+    # over-edited — e.g. a false-positive heuristic rewrote text inside a string.
+    # This is a behavioral change that a human must verify.
+    _STRING_RE = re.compile(r'"[^"\n]*"|\'[^\'\n]*\'')
+    original_strings = set(_STRING_RE.findall(original_code))
+    fixed_strings = set(_STRING_RE.findall(fixed_code))
+    if original_strings and (original_strings - fixed_strings):
+        score -= 25
+        reasons.append("Fix altered string literal contents — possible over-edit or false positive.")
+
+    # ----------------------------
     # Clamp score
     # ----------------------------
     score = max(0, min(100, score))
@@ -80,7 +94,14 @@ def assess_risk(
     # ----------------------------
     # Auto-fix policy
     # ----------------------------
-    should_autofix = level == "low"
+    # A low risk score is necessary but not sufficient. If the agent detected
+    # any Medium or High severity issue, a human should verify the fix even
+    # when the score is technically in the "low" band.
+    has_significant_issues = any(
+        str(issue.get("severity", "")).lower() in {"medium", "high"}
+        for issue in issues
+    )
+    should_autofix = level == "low" and not has_significant_issues
 
     if not reasons:
         reasons.append("No significant risks detected.")

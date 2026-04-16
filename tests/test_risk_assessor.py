@@ -46,3 +46,25 @@ def test_missing_return_is_penalized():
     )
     assert risk["score"] < 100
     assert any("Return" in r or "return" in r for r in risk["reasons"])
+
+
+def test_string_literal_mutation_blocks_autofix():
+    """
+    A heuristic false positive can cause the fixer to rewrite text inside a
+    string literal (e.g. 'use print() to debug' → 'use logging.info() to debug').
+    That is a behavioral change. The risk assessor must catch it and prevent
+    auto-fix even when the issue severity is Low and the score would otherwise
+    qualify.
+    """
+    original = 'def docs():\n    msg = "use print() to debug"\n    return msg\n'
+    fixed = 'import logging\n\ndef docs():\n    msg = "use logging.info() to debug"\n    return msg\n'
+    issues = [{"type": "Code Quality", "severity": "Low", "msg": "print statement found"}]
+
+    risk = assess_risk(original_code=original, fixed_code=fixed, issues=issues)
+
+    assert risk["should_autofix"] is False, (
+        "A fix that mutates string literal contents must not be auto-applied."
+    )
+    assert any("string" in r.lower() for r in risk["reasons"]), (
+        "Risk reasons should mention the string literal mutation."
+    )
