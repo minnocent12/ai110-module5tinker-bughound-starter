@@ -149,6 +149,9 @@ Three guardrails were added beyond the starter implementation:
 ### Test 7 — Gemini Mode Sidebar Warning
 ![Gemini mode warning](demo/07_gemini_mode_warning.png)
 
+### Test 8 — Gemini Mode in Action (flaky_try_except.py)
+![Gemini in action](demo/08_gemini_in_action.png)
+
 ---
 
 ## Tech Fellow Notes
