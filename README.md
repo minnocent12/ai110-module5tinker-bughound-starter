@@ -148,3 +148,9 @@ Three guardrails were added beyond the starter implementation:
 
 ### Test 7 — Gemini Mode Sidebar Warning
 ![Gemini mode warning](demo/07_gemini_mode_warning.png)
+
+---
+
+## Tech Fellow Notes
+
+The core concept students needed to understand is that agentic systems are not just single AI calls — they are pipelines where each step (analyze, act, assess, reflect) has its own failure modes, and reliability comes from the rules around the AI, not from the AI itself. Students most commonly struggled with the risk assessor's scoring logic: it was easy to read the numbers without questioning whether the thresholds and penalties actually matched real-world risk, and many initially accepted the default `should_autofix = level == "low"` without considering that a "low risk score" and "safe to auto-apply" are not the same thing. AI tools like Copilot were genuinely helpful for understanding unfamiliar code quickly and drafting test structures, but they were misleading when used to evaluate whether a guardrail was *necessary* — Copilot tends to validate whatever framing is given to it rather than push back on the design decision. To guide a student who is stuck on the guardrail section without giving the answer, a good prompt is: "Look at the `print(` detection in `_heuristic_analyze` — what Python construct could contain those exact characters without being a function call, and what would the fixer do to it?" — this leads them to find the string literal false positive themselves rather than being told where to look.
